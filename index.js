@@ -20,7 +20,21 @@ async function run() {
   try {
     const userCollection = client.db("chatSpiral").collection("users");
 
-    // database CRUD goes here
+    // save new user
+    app.post("/users", async (req, res) => {
+      const user = req.body;
+      const email = user.email;
+      const query = {
+        email: email,
+      };
+      const existingUser = await userCollection.findOne(query);
+      if (existingUser) {
+        return res.send({ acknowledged: true });
+      }
+
+      const result = await userCollection.insertOne(user);
+      res.send(result);
+    });
   } finally {
         // prettier-ignore
     }
