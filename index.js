@@ -23,23 +23,65 @@ async function run() {
     const messageCollection = client.db("chatSpiral").collection("messages");
     const chatCollection = client.db("chatSpiral").collection("chats");
 
-    // get all users
-    app.get("/users", async (req, res) => {
-      const query = req.query.search
-        ? {
-            $or: [
-              {
-                name: { $regex: req.query.search, $options: "i" },
-              },
-              {
-                email: { $regex: req.query.search, $options: "i" },
-              },
-            ],
-          }
-        : {};
+    // TODO: JWT token will be implemented soon...
 
-      // best-practice: use JWT to exclude current users data from this result ...find(query).find({email:{$ne: req.decoded.email}}).toAr...
-      const users = await userCollection.find(query).toArray();
+    // get all chats
+    app.get("/chats", async (req, res) => {
+      // -----------
+    });
+
+    // create chat (access)
+    app.post("/chats", async (req, res) => {
+      const { from, to } = req.body;
+      const fromEmail = from?.email;
+      const toEmail = to?.email;
+
+      // users: { $elemMatch: { $eq: fromEmail } } }, { users: { $elemMatch: { $eq: toEmail } }
+
+      // {"EmployeeDetails.EmployeeName":"David","EmployeeDetails.EmployeeEmail":"david@gmail.com"}
+      const query = {
+        // isGroupChat:false,
+        "users.email": fromEmail,
+        "users.email": toEmail,
+      };
+
+      const chat = await chatCollection.find(query).toArray();
+
+      if (chat.length > 0) {
+        res.send(chat[0]);
+      } else {
+        const chatData = {
+          chatName: "sender",
+          isGroupChat: false,
+          users: [from, to],
+        };
+
+        const createdChat = await chatCollection.insertOne(chatData);
+        const newFullChat = await chatCollection.findOne({ _id: createdChat.insertedId });
+
+        res.send(newFullChat);
+      }
+    });
+
+    // create group chat
+    app.post("/chats/group", async (req, res) => {
+      // -----------
+    });
+
+    // get user(s)
+    app.get("/users", async (req, res) => {
+      const userEmail = req.query.user;
+      const searchEmail = req.query.search;
+      let query = { email: searchEmail } || {};
+
+      // best-practice: use JWT to exclude current users data from this result
+      // ...find(query).filter({email:{$ne: req.decoded.email}}).toArr...
+      const users = await userCollection
+        .find(query)
+        .filter({ email: { $ne: userEmail } })
+        .toArray();
+
+      res.send(users);
     });
 
     // save new user
