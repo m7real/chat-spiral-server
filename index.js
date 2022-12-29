@@ -27,7 +27,14 @@ async function run() {
 
     // get all chats
     app.get("/chats", async (req, res) => {
-      // -----------
+      const userEmail = req.query.email;
+
+      const query = {
+        "users.email": userEmail,
+      };
+
+      const chats = await chatCollection.find(query).toArray();
+      res.send(chats);
     });
 
     // create chat (access)
@@ -39,10 +46,14 @@ async function run() {
       // users: { $elemMatch: { $eq: fromEmail } } }, { users: { $elemMatch: { $eq: toEmail } }
 
       // {"EmployeeDetails.EmployeeName":"David","EmployeeDetails.EmployeeEmail":"david@gmail.com"}
-      const query = {
+      const q = {
         // isGroupChat:false,
         "users.email": fromEmail,
         "users.email": toEmail,
+      };
+
+      const query = {
+        $and: [{ users: { $elemMatch: { email: fromEmail } } }, { users: { $elemMatch: { email: toEmail } } }],
       };
 
       const chat = await chatCollection.find(query).toArray();
@@ -72,15 +83,14 @@ async function run() {
     app.get("/users", async (req, res) => {
       const userEmail = req.query.user;
       const searchEmail = req.query.search;
+      if (userEmail === searchEmail) {
+        return res.send([]);
+      }
       let query = { email: searchEmail } || {};
 
       // best-practice: use JWT to exclude current users data from this result
       // ...find(query).filter({email:{$ne: req.decoded.email}}).toArr...
-      const users = await userCollection
-        .find(query)
-        .filter({ email: { $ne: userEmail } })
-        .toArray();
-
+      const users = await userCollection.find(query).toArray();
       res.send(users);
     });
 
