@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const { MongoClient, ServerApiVersion } = require("mongodb");
+const { query } = require("express");
 require("dotenv").config();
 
 const port = process.env.PORT || 5000;
@@ -19,6 +20,27 @@ const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology:
 async function run() {
   try {
     const userCollection = client.db("chatSpiral").collection("users");
+    const messageCollection = client.db("chatSpiral").collection("messages");
+    const chatCollection = client.db("chatSpiral").collection("chats");
+
+    // get all users
+    app.get("/users", async (req, res) => {
+      const query = req.query.search
+        ? {
+            $or: [
+              {
+                name: { $regex: req.query.search, $options: "i" },
+              },
+              {
+                email: { $regex: req.query.search, $options: "i" },
+              },
+            ],
+          }
+        : {};
+
+      // best-practice: use JWT to exclude current users data from this result ...find(query).find({email:{$ne: req.decoded.email}}).toAr...
+      const users = await userCollection.find(query).toArray();
+    });
 
     // save new user
     app.post("/users", async (req, res) => {
