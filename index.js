@@ -1,6 +1,6 @@
 const express = require("express");
 const cors = require("cors");
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const { query } = require("express");
 require("dotenv").config();
 
@@ -77,6 +77,39 @@ async function run() {
     // create group chat
     app.post("/chats/group", async (req, res) => {
       // -----------
+    });
+
+    // messages apis
+    // get all messages for a particular chat
+    app.get("/messages/:chatId", async (req, res) => {
+      const chatId = req.params.chatId;
+      console.log("a", chatId);
+      const query = {
+        chatId: chatId,
+      };
+
+      const messages = await messageCollection.find(query).toArray();
+
+      console.log(messages);
+      res.send(messages);
+    });
+
+    // post message
+    app.post("/messages", async (req, res) => {
+      const { user, content, chat } = req.body;
+
+      const newMessage = {
+        senderEmail: user?.email,
+        sender: user,
+        content,
+        chatId: chat?._id,
+        chat,
+        createdAt: new Date().getTime(),
+      };
+
+      const result = await messageCollection.insertOne(newMessage);
+      const message = await messageCollection.findOne({ _id: result?.insertedId });
+      res.send(message);
     });
 
     // get user(s)
