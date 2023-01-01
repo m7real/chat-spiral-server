@@ -12,9 +12,8 @@ const http = require("http");
 
 const httpServer = http.createServer(app);
 const io = require("socket.io")(httpServer, {
-  pingTimeout: 180000,
   cors: {
-    origin: "https://chat-spiral-client-lgue.vercel.app/",
+    origin: "https://chat-spiral-server.vercel.app",
     methods: ["GET", "POST"],
   },
 });
@@ -25,17 +24,15 @@ app.use(express.json());
 
 // socket
 io.on("connection", (socket) => {
-  console.log("a user connected");
+  // console.log("a user connected");
 
   socket.on("setup", (userData) => {
     socket.join(userData?.email);
-    console.log(userData?.email);
     socket.emit("connected");
   });
 
   socket.on("join chat", (room) => {
     socket.join(room);
-    console.log("user joined Room ", room);
   });
 
   socket.on("new message", (newMessageReceived) => {
