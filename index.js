@@ -12,6 +12,7 @@ const http = require("http");
 
 const httpServer = http.createServer(app);
 const io = require("socket.io")(httpServer, {
+  pingTimeout: 180000,
   cors: {
     origin: "https://chat-spiral-client-lgue.vercel.app/",
     methods: ["GET", "POST"],
