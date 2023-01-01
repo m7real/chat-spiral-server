@@ -5,12 +5,49 @@ const { query } = require("express");
 require("dotenv").config();
 
 const port = process.env.PORT || 5000;
+// https://chat-spiral-server.vercel.app/
 
 const app = express();
+const http = require("http");
+
+const httpServer = http.createServer(app);
+const io = require("socket.io")(httpServer, {
+  cors: {
+    origin: "https://chat-spiral-client-lgue.vercel.app/",
+    methods: ["GET", "POST"],
+  },
+});
 
 // middleware
 app.use(cors());
 app.use(express.json());
+
+// socket
+io.on("connection", (socket) => {
+  console.log("a user connected");
+
+  socket.on("setup", (userData) => {
+    socket.join(userData?.email);
+    console.log(userData?.email);
+    socket.emit("connected");
+  });
+
+  socket.on("join chat", (room) => {
+    socket.join(room);
+    console.log("user joined Room ", room);
+  });
+
+  socket.on("new message", (newMessageReceived) => {
+    let chat = newMessageReceived?.chat;
+    if (!chat?.users) {
+      return console.log("chat.users not defined");
+    }
+    chat?.users?.forEach((user) => {
+      if (user?.email === newMessageReceived?.sender?.email) return;
+      socket.in(user?.email).emit("message received", newMessageReceived);
+    });
+  });
+});
 
 // mongoDB
 
@@ -83,14 +120,12 @@ async function run() {
     // get all messages for a particular chat
     app.get("/messages/:chatId", async (req, res) => {
       const chatId = req.params.chatId;
-      console.log("a", chatId);
       const query = {
         chatId: chatId,
       };
 
       const messages = await messageCollection.find(query).toArray();
 
-      console.log(messages);
       res.send(messages);
     });
 
@@ -154,6 +189,6 @@ app.get("/", (req, res) => {
   res.send("Chat Spiral Server Running");
 });
 
-app.listen(port, () => {
+httpServer.listen(port, () => {
   console.log(`Chat Spiral Server Running On Port ${port}`);
 });
